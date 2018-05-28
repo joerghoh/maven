@@ -14,7 +14,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-@Mojo (name="validate", defaultPhase=LifecyclePhase.VERIFY )
+@Mojo (name="validate", defaultPhase=LifecyclePhase.VERIFY, requiresProject=false )
 public class ContentValidationMojo extends AbstractValidationMojo {
 	
 	private static final String SUBPACKAGE_EXPRESSION = "/jcr_root/etc/packages/.*.zip";

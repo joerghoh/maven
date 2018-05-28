@@ -9,7 +9,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-@Mojo (name="dumpContent", defaultPhase=LifecyclePhase.VERIFY )
+@Mojo (name="dumpContent", defaultPhase=LifecyclePhase.VERIFY, requiresProject=false )
 public class ContentDumpMojo extends AbstractValidationMojo {
 		
 	@Parameter (property="validation.filename", defaultValue="${project.build.directory}/${project.build.finalName}")
