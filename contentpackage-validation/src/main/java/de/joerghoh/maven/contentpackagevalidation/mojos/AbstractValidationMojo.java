@@ -41,18 +41,17 @@ public abstract class AbstractValidationMojo extends AbstractMojo {
 		} catch (IOException e) {
 			getLog().error("Caught exception while analyzing content package", e);
 		} finally {
-//			archive.close();
+			archive.close();
 		}
-		//getLog().info("inside getArchiveContent for " + archiveFilename + " with entries " + content.size() );
 		return content;
 		
 	}
 	
 	
 	
-	void analyzeEntry (Archive.Entry e, String path, Archive archive,String archiveFilename, List<ContentPackageEntry> content) {
-		if (! e.isDirectory()) {
-			ContentPackageEntry cpe = new ContentPackageEntry(path,e, archive, archiveFilename);
+	void analyzeEntry (Archive.Entry entry, String path, Archive archive,String archiveFilename, List<ContentPackageEntry> content) {
+		if (! entry.isDirectory()) {
+			ContentPackageEntry cpe = new ContentPackageEntry(path,entry, archive, archiveFilename);
 			content.add(cpe);
 		}
 		
@@ -60,7 +59,7 @@ public abstract class AbstractValidationMojo extends AbstractMojo {
 			// recurse into a subpackage
 			ZipStreamArchive zsa = null;
 			try {
-				zsa = new ZipStreamArchive(archive.openInputStream(e));
+				zsa = new ZipStreamArchive(archive.openInputStream(entry));
 				zsa.open(true);
 				Archive.Entry rootNode = zsa.getRoot();
 				String filename = String.format("%s:%s", archiveFilename,path);
@@ -68,7 +67,7 @@ public abstract class AbstractValidationMojo extends AbstractMojo {
 
 			} catch (IOException e1) {
 				String msg = String.format("Error while extracting subpackage %s", path);
-				getLog().error(msg);
+				getLog().error(msg, e1);
 			}finally {
 				if (zsa != null) {
 					zsa.close();
@@ -77,7 +76,7 @@ public abstract class AbstractValidationMojo extends AbstractMojo {
 		}
 	
 		// recurse down the tree
-		e.getChildren().forEach(c -> {
+		entry.getChildren().forEach(c -> {
 			String childPath = path + "/" + c.getName();
 			analyzeEntry(c,childPath, archive, archiveFilename, content);
 		});
