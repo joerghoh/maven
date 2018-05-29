@@ -46,8 +46,12 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 		}
 		List<String> policyViolations = new ArrayList<>();
 		
-		
 		validatePackage(target, policyViolations);
+		reportViolations(policyViolations);
+		
+	}
+
+	private void reportViolations(List<String> policyViolations) throws MojoExecutionException {
 		if (policyViolations.size() > 0) {
 			getLog().warn(policyViolations.size() + " violation(s) against policy (" + String.join(",", filteredPaths) + ")");
 			policyViolations.forEach(s -> getLog().warn(s));
@@ -55,7 +59,6 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 				throw new MojoExecutionException("policy violation detected, please check build logs");
 			}
 		}
-		
 	}
 
 	private void validatePackage(File zipFile, List<String> policyViolations ) {
@@ -65,15 +68,6 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 			.collect(Collectors.toList());
 	}
 	
-	private void validateArchive (Archive archive, String filename, List<String> policyViolations) {
-		getLog().info("Checking package " + filename);
-		List<ContentPackageEntry> violations = getArchiveContent(archive, filename).stream()
-				.filter (cpe -> applyPathFilterRules(cpe,policyViolations))
-				.filter (cpe -> checkForSubpackages(cpe, policyViolations))
-				.collect(Collectors.toList());
-	}
-	
-
 	boolean applyPathFilterRules (ContentPackageEntry cpe, List<String> policyViolations) {
 		
 		boolean violatesPolicy = filteredPaths.stream()
@@ -91,17 +85,6 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 		if (isSubPackage && !allowSubpackages) {
 			String msg = String.format("detected subpackage at: %s", cpe.getPath());
 			policyViolations.add(msg);
-		}
-		if (isSubPackage) {
-			// recurse
-			try {
-				ZipStreamArchive zsa = new ZipStreamArchive(cpe.getArchive().openInputStream(cpe.getEntry()));
-				//Archive subArchive = cpe.getArchive().getSubArchive(cpe.getPath(), true);
-				validateArchive (zsa,String.format("%s:%s", cpe.getArchiveFilename(),cpe.getPath()),policyViolations);
-			} catch (IOException ioe) {
-				String msg = String.format("Exception during extraction of subpackage %s of archive %s", cpe.getPath(),cpe.getArchive());
-				getLog().error(msg);
-			}
 		}
 		return !isSubPackage;
 	}
