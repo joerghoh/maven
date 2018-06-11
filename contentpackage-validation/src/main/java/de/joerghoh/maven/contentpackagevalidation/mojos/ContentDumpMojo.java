@@ -22,8 +22,11 @@ public class ContentDumpMojo extends AbstractValidationMojo {
 			target = new File (target.getAbsolutePath() + TARGET_EXTENSION);
 		}
 
-		getFileContent(target).forEach(cpe -> getLog().info(cpe.getPath()));
-		getLog().debug("Using " + target.getAbsolutePath() + " as input");
+		getFileContent(target).forEach(cpe -> {
+			String msg = String.format("[%s] %s", cpe.getArchiveFilename(), cpe.getPath());
+			getLog().info(msg);
+			
+		});
 		
 	}
 	

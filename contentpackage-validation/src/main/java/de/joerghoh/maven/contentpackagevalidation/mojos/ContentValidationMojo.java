@@ -1,13 +1,10 @@
 package de.joerghoh.maven.contentpackagevalidation.mojos;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.vault.fs.io.Archive;
-import org.apache.jackrabbit.vault.fs.io.ZipStreamArchive;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -44,28 +41,39 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 		if (!target.getName().endsWith(TARGET_EXTENSION)) {
 			target = new File (target.getAbsolutePath() + TARGET_EXTENSION);
 		}
-		List<String> policyViolations = new ArrayList<>();
-		
-		validatePackage(target, policyViolations);
-		reportViolations(policyViolations);
+
+		reportViolations(validatePackage(target));
 		
 	}
 
+	/**
+	 * Validate the content package
+	 * @param zipFile the input file
+	 * @return the policy violations
+	 */
+	private List<String> validatePackage(File zipFile) {
+		List<String> policyViolations = new ArrayList<>();
+		List<ContentPackageEntry> violations = getFileContent(zipFile).stream()
+			.filter (cpe -> applyPathFilterRules(cpe,policyViolations))
+			.filter (cpe -> checkForSubpackages(cpe, policyViolations))
+			.collect(Collectors.toList());
+		return policyViolations;
+	}
+	
+	/**
+	 * report policy violations
+	 * @param policyViolations
+	 * @throws MojoExecutionException
+	 */
 	private void reportViolations(List<String> policyViolations) throws MojoExecutionException {
 		if (policyViolations.size() > 0) {
-			getLog().warn(policyViolations.size() + " violation(s) against policy (" + String.join(",", filteredPaths) + ")");
+			String msg = String.format("%d violation(s) against policy (%s)", policyViolations.size(),String.join(",", filteredPaths)); 
+			getLog().warn(msg);
 			policyViolations.forEach(s -> getLog().warn(s));
 			if (breakBuild) {
 				throw new MojoExecutionException("policy violation detected, please check build logs");
 			}
 		}
-	}
-
-	private void validatePackage(File zipFile, List<String> policyViolations ) {
-		List<ContentPackageEntry> violations = getFileContent(zipFile).stream()
-			.filter (cpe -> applyPathFilterRules(cpe,policyViolations))
-			.filter (cpe -> checkForSubpackages(cpe, policyViolations))
-			.collect(Collectors.toList());
 	}
 	
 	boolean applyPathFilterRules (ContentPackageEntry cpe, List<String> policyViolations) {
