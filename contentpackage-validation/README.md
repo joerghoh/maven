@@ -57,7 +57,7 @@ At the moment the plugin supports these restrictions
 If you just want to dump the content of a package (including subpackages), use the "dump" goal:
 
 ```
-mvn de.joerghoh.maven:contentpackage-validation-maven-plugin:dump -Dvalidation.filename=<path_to_the_contentpackage> 
+mvn de.joerghoh.maven:contentpackage-validation-maven-plugin:dumpContent -Dvalidation.filename=<path_to_the_contentpackage> 
 ```
 
 
