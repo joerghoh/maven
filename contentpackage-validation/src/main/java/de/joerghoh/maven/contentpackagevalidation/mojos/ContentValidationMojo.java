@@ -102,9 +102,31 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 	 */
 	boolean filterPathViolations (ContentPackageEntry cpe, List<String> policyViolations) {
 		
-		boolean isCompliant = whitelistedPaths.stream()
+		List<String> positiveStatements = new ArrayList<>();
+		List<String> negativeStatements = new ArrayList<>();
+		
+		whitelistedPaths.forEach(regex -> {
+			//getLog().info(String.format("checking %s", regex));
+			if (regex.startsWith("!")) {
+				negativeStatements.add(regex.substring(1));
+			} else {
+				positiveStatements.add(regex);
+				
+			}
+		});
+			
+		// there must be at least 1 match on the positiveStatement list
+		boolean positiveMatch = positiveStatements.stream()
 				.filter((String regex) -> cpe.getPath().matches(regex))
 				.findFirst().isPresent();
+		
+		// but no match on the negativeStatement list
+		boolean negativeMatch = negativeStatements.stream()
+				.filter((String regex) -> cpe.getPath().matches(regex))
+				.findFirst().isPresent();
+		
+		//getLog().info(String.format("%s: positiveMatch=%s, negativeMatch=%s",cpe.getPath(),positiveMatch, negativeMatch));
+		boolean isCompliant = (positiveMatch && !negativeMatch);
 		if (! isCompliant) {
 			String msg = String.format("[%s] detected violation of path rules: %s", cpe.getArchiveFilename(),cpe.getPath());
 			getLog().debug(msg);
