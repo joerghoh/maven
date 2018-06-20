@@ -96,6 +96,8 @@ public abstract class AbstractValidationMojo extends AbstractMojo {
 		// recurse down the tree
 		entry.getChildren().forEach(c -> {
 			String childPath = path + "/" + c.getName();
+			String msg = String.format("Checking node %s in archive %s", childPath, archiveFilename);
+			getLog().debug(msg);
 			analyzeEntry(c,childPath, archive, archiveFilename, content);
 		});
 		

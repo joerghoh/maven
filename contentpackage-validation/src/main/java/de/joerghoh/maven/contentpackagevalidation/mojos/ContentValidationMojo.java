@@ -1,4 +1,6 @@
 /*
+ * 
+ * 
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -34,9 +36,8 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 	
 	private static final String SUBPACKAGE_EXPRESSION = "/jcr_root/etc/packages/.*.zip";
 	
-	
-	@Parameter (property="validation.filteredPaths")
-	ArrayList<String> filteredPaths;
+	@Parameter (property="validation.whitelistedPaths")
+	ArrayList<String> whitelistedPaths;
 	
 	@Parameter (property="validation.filename", defaultValue="${project.build.directory}/${project.build.finalName}")
 	private File target;
@@ -51,13 +52,12 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		
-		if (filteredPaths.size() == 0 && allowSubpackages) {
-			getLog().info("No filters and no subpackage restriction given, skipping");
-			return;
-		}
-		
 		if (!target.getName().endsWith(TARGET_EXTENSION)) {
 			target = new File (target.getAbsolutePath() + TARGET_EXTENSION);
+		}
+		if (!target.exists()) {
+			getLog().error(String.format("File %s does not exist", target.getAbsolutePath()));
+			return;
 		}
 
 		reportViolations(validatePackage(target));
@@ -72,7 +72,7 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 	private List<String> validatePackage(File zipFile) {
 		List<String> policyViolations = new ArrayList<>();
 		List<ContentPackageEntry> violations = getFileContent(zipFile).stream()
-			.filter (cpe -> applyPathFilterRules(cpe,policyViolations))
+			.filter (cpe -> filterPathViolations(cpe,policyViolations))
 			.filter (cpe -> checkForSubpackages(cpe, policyViolations))
 			.collect(Collectors.toList());
 		return policyViolations;
@@ -85,7 +85,7 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 	 */
 	private void reportViolations(List<String> policyViolations) throws MojoExecutionException {
 		if (policyViolations.size() > 0) {
-			String msg = String.format("%d violation(s) against policy (%s)", policyViolations.size(),String.join(",", filteredPaths)); 
+			String msg = String.format("%d violation(s) against policy (%s)", policyViolations.size(), getPolicyString()); 
 			getLog().warn(msg);
 			policyViolations.forEach(s -> getLog().warn(s));
 			if (breakBuild) {
@@ -94,16 +94,23 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 		}
 	}
 	
-	boolean applyPathFilterRules (ContentPackageEntry cpe, List<String> policyViolations) {
+	/**
+	 * validate a content package entry against the path filter rules
+	 * @param cpe
+	 * @param policyViolations the list of violations
+	 * @return false if the violation is deteced, true otherwise
+	 */
+	boolean filterPathViolations (ContentPackageEntry cpe, List<String> policyViolations) {
 		
-		boolean violatesPolicy = filteredPaths.stream()
+		boolean isCompliant = whitelistedPaths.stream()
 				.filter((String regex) -> cpe.getPath().matches(regex))
 				.findFirst().isPresent();
-		if (violatesPolicy) {
+		if (! isCompliant) {
 			String msg = String.format("[%s] detected violation of path rules: %s", cpe.getArchiveFilename(),cpe.getPath());
+			getLog().debug(msg);
 			policyViolations.add(msg);
 		}
-		return !violatesPolicy;
+		return isCompliant;
 	}
 	
 	boolean checkForSubpackages (ContentPackageEntry cpe, List<String> policyViolations) {
@@ -116,6 +123,9 @@ public class ContentValidationMojo extends AbstractValidationMojo {
 	}
 	
 
+	String getPolicyString() {
+		return String.format("whitelisted paths = [%s], allowSubpackages = %s",String.join(",", whitelistedPaths),allowSubpackages );
+	}
 	
 
 	

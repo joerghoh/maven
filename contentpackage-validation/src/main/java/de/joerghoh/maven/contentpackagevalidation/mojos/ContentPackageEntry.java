@@ -27,6 +27,14 @@ public class ContentPackageEntry {
 	private Archive archive;
 	private String archiveFilename;
 	
+	/**
+	 * 
+	 * @param path the path inside the content package
+	 * @param entry -- the entry
+	 * @param archive -- the archive to which is entry is taken
+	 * @param archiveFilename -- the path the archive (if nested)
+	 */
+	
 	public ContentPackageEntry (String path,Archive.Entry entry, Archive archive, String archiveFilename) {
 		this.path = path;
 		this.entry = entry;
@@ -48,5 +56,9 @@ public class ContentPackageEntry {
 	
 	public String getArchiveFilename() {
 		return archiveFilename;
+	}
+	
+	public String toString() {
+		return String.format("%s:%s", archiveFilename,path);
 	}
 }

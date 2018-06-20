@@ -1,9 +1,10 @@
 # Contentpackage-validation-maven-plugin
 
-Using this package you can validate restrictions on content packages. At the moment it supports 2 different restrictions
+Using this package you can validate rules against a content package. At the moment it supports 2 different restrictions
 
-* checking for the existence of certain files inside packages and subpackages
+* check if a content package contains files which are not explicitly allowed
 * check for the existence of subpackages
+
 
 Additionally to a pure reporting of collisions with these rules you can also break the build.
 
@@ -12,13 +13,13 @@ Additionally to a pure reporting of collisions with these rules you can also bre
 provide the name of the content package via the "validation.filename" system property.
 
 ```
-mvn de.joerghoh.maven:contentpackage-validation-maven-plugin:validate -Dvalidation.filename=<path_to_the_contentpackage> "-Dvalidation.filteredPaths=.*\.jar"  -Dvalidation.breakBuildOnValiationFailures=true
+mvn de.joerghoh.maven:contentpackage-validation-maven-plugin:validate -Dvalidation.filename=<path_to_the_contentpackage> "-Dvalidation.whitelistedPaths=!/jcr_root/apps/.*\.jar"  -Dvalidation.breakBuildOnValiationFailures=true
 ```
 
-This is probably the most often used mode; it allows you to scan a content package in the filesystem for all files with the extension ".jar" (full regular expression support!). You can also check for multiple expressions at once:
+This is probably the most often used mode; it allows you to scan a content package for jar bundles (full regular expression support!) and fail if there is one encountered. You can also check for multiple expressions at once:
 
 ```
-"-Dvalidation.filteredPaths=.*\.jar,.*\.conf"
+"-Dvalidation.filteredPaths=!/jcr_root/apps.*\.jar,!/jcr_root/apps/.*/config.*/.*\.conf"
 ```
 
 ## Running as part of the build
@@ -34,21 +35,28 @@ Example how to configure:
   <configuration>
     <breakBuild>true</breakBuild>
     <allowSubpackages>true</allowSubpackages>
-    <filteredPaths>
-      <param>jcr_root/libs/.*</param>
-      <param>jcr_root/content/.*</param>
-    </filteredPaths>
+    <whitelistedPaths>
+      <param>!/jcr_root/libs/.*</param>
+      <param>!/jcr_root/content/.*</param>
+      <param>/META-INF/.*</param>
+    </whitelistedPaths>
   </configuration>
 
 </plugin>
 ```
-This configuration will disallow content for /libs and /content, allow sub packages and break the build if a violation is detected.
+This configuration will disallow nodes in /libs and /content, but accept the META-INF directory (which is kind of boilderplate and should always be there).
+
+## Building regular expressions
+The whitelistedPaths setting allows full regular expressions; you can build positive and negative statements like this:
+
+* positive statements (e.g. ``/jcr_content/apps/myapp/.*``) make sure that certain conntent is allowed in a package.
+* negative statements (e.g. ``!/jcr_content/libs.*``) make sure that any occurrence of paths matching that pattern will be considered as policy violations and reported.
 
 
 ## Supported restrictions
 At the moment the plugin supports these restrictions
 
-* path restrictions (system property: validation.filteredPaths, maven configuration: filteredPaths): A multivalue list of regular expressions, which denote files which should be blocked.
+* path restrictions (system property: validation.whitelistedPaths, maven configuration: whitelistedPaths): A multivalue list of regular expressions, which are allowed. 
 * subpackage restrictions (system property: validation.allowSubpackages,  maven configuration: allowSubpackages): either "true" or "false"; if "false" any subpackage will be reported.
 
 
